@@ -1,0 +1,29 @@
+{
+  "name": "phaser-typescript-webpack-template",
+  "version": "1.0.0",
+  "description": "Phaser template using TypeScript and webpack",
+  "scripts": {
+    "dev": "webpack --mode development && webpack serve --mode development"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VadimLyashenko/phaser-typescript-webpack-template.git"
+  },
+  "author": "Vadim Lyashenko",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VadimLyashenko/phaser-typescript-webpack-template/issues"
+  },
+  "homepage": "https://github.com/VadimLyashenko/phaser-typescript-webpack-template#readme",
+  "dependencies": {
+    "phaser": "^3.52.0"
+  },
+  "devDependencies": {
+    "expose-loader": "^2.0.0",
+    "ts-loader": "^8.0.17",
+    "typescript": "^4.1.5",
+    "webpack": "^5.21.2",
+    "webpack-cli": "^4.5.0",
+    "webpack-dev-server": "^3.11.2"
+  }
+}
