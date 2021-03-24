@@ -1,20 +1,20 @@
 {
-  "name": "phaser-typescript-webpack-template",
+  "name": "three-in-row",
   "version": "1.0.0",
-  "description": "Phaser template using TypeScript and webpack",
+  "description": "three in row game",
   "scripts": {
     "dev": "webpack --mode development && webpack serve --mode development"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VadimLyashenko/phaser-typescript-webpack-template.git"
+    "url": "git+https://github.com/VadimLyashenko/three-in-row.git"
   },
   "author": "Vadim Lyashenko",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/VadimLyashenko/phaser-typescript-webpack-template/issues"
+    "url": "https://github.com/VadimLyashenko/three-in-row/issues"
   },
-  "homepage": "https://github.com/VadimLyashenko/phaser-typescript-webpack-template#readme",
+  "homepage": "https://github.com/VadimLyashenko/three-in-row#readme",
   "dependencies": {
     "phaser": "^3.52.0"
   },
