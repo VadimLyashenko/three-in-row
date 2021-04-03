@@ -1,177 +1,199 @@
+import { Match } from '../models/match';
 import { Tile } from '../models/tile';
 import { colors } from '../colors';
 
+let game;
+let gameOptions = {
+    gemSize: 71,
+    swapSpeed: 200,
+    fallSpeed: 100,
+    destroySpeed: 200,
+    boardOffset: {
+        x: 0,
+        y: 0
+    }
+}
+
 export class GameScene extends Phaser.Scene {
-
-  constructor() {
-    super({
-      key: 'GameScene'
-    });
-  }
-
-  private tileGrid: Tile[][];
-
-  init ()
-  {
-    this.tileGrid = [];
-    for (let y = 0; y < 8; y++) {
-      this.tileGrid[y] = [];
-      for (let x = 0; x < 8; x++) {
-        this.tileGrid[y][x] = this.addTile(x, y);
-      }
+    constructor() {
+        super({
+            key: 'GameScene'
+        });
     }
 
-    // let pointer = this.input.activePointer;
-    let canMove: boolean = true;
-    let coord_y: number = -1;
-    let coord_x: number = -1;
+    match: Match;
+    canPick: boolean;
+    dragging: boolean;
+    poolArray: [];
+    swappingGems: number;
+    selectedGem: any;
 
-    let prev_y: number = -1;
-    let prev_x: number = -1;
+    create () {
+        this.match = new Match({
+            rows: 8,
+            columns: 8,
+            items: 6
+        });
 
-    console.table(this.tileGrid);
-
-    this.tileGrid.map(function(row, y) {
-      row.map(function(element, x) {
-        element.setInteractive().on('pointerdown', function(){
-          // console.log(`coord_y:${coord_y} coord_x:${coord_x} element.y:${element.y} element.x:${element.x}`);
-          if (coord_y == -1&& coord_x == -1) {
-            element.setStrokeStyle(2, 0x33ee33);
-            coord_y = element.y;
-            coord_x = element.x;
-            prev_y = y;
-            prev_x = x;
-          } else {
-            this.clearStroke();
-            if (this.isNear(coord_y, coord_x, element.y, element.x) && canMove) {
-              canMove = false;
-              this.add.tween({
-                targets: this.tileGrid[prev_y][prev_x],
-                y: element.y,
-                x: element.x, 
-                ease: 'Linear',
-                duration: 300,
-                repeat: 0,
-                yoyo: false,
-                onComplete: () => {
-                }
-              });
-              this.add.tween({
-                targets: element,
-                y: this.tileGrid[prev_y][prev_x].y,
-                x: this.tileGrid[prev_y][prev_x].x,
-                ease: 'Linear',
-                duration: 300,
-                repeat: 0,
-                yoyo: false,
-                onComplete: () => {
-                  let arr1 = [];
-                  for (let i = 0; i < 600; i= i + 75) {
-                    let arr2 = [];
-                    let k: number = 0;
-                    for (let j = 0; j < 600; j= j + 75) {
-                      if (j != 525 && (this.findByCoord(this.tileGrid, i, j).fillColor == this.findByCoord(this.tileGrid, i, j + 75).fillColor)) {
-                        k++;
-                      } else {
-                        switch(k) {
-                          case 2: {
-                            arr2.push({y: i, x: j - 150}, {y: i, x: j - 75}, {y: i, x: j});
-                            break;
-                          }
-                          case 3: {
-                            arr2.push({y: i, x: j - 225}, {y: i, x: j - 150}, {y: i, x: j - 75}, {y: i, x: j});
-                            break;
-                          }
-                          case 4: {
-                            arr2.push({y: i, x: j - 300}, {y: i, x: j - 225}, {y: i, x: j - 150}, {y: i, x: j - 75}, {y: i, x: j});
-                            break;
-                          }
-                          case 5: {
-                            arr2.push({y: i, x: j - 375}, {y: i, x: j - 300}, {y: i, x: j - 225}, {y: i, x: j - 150}, {y: i, x: j - 75}, {y: i, x: j});
-                            break;
-                          }
-                          case 6: {
-                            arr2.push({y: i, x: j - 450}, {y: i, x: j - 375}, {y: i, x: j - 300}, {y: i, x: j - 225}, {y: i, x: j - 150}, {y: i, x: j - 75}, {y: i, x: j});
-                            break;
-                          }
-                          case 7: {
-                            arr2.push({y: i, x: j - 525}, {y: i, x: j - 450}, {y: i, x: j - 375}, {y: i, x: j - 300}, {y: i, x: j - 225}, {y: i, x: j - 150}, {y: i, x: j - 75}, {y: i, x: j});
-                            break;
-                          }
-                        }
-                        k = 0;
-                      }
-                    }
-                    arr1.push(arr2);
-                  }
-                  console.log(arr1);
-                  // for(let j = 0; j < 600; j= j + 75){
-                  //   for(let i = 0; i < 600; i= i + 75){
-                  //     console.log(`i:${i} j:${j} color: ${this.findByCoord(this.tileGrid, i, j).fillColor}`);
-                  //   }
-                  // }
-                  canMove = true;
-                }
-              });
-              coord_y = -1;
-              coord_x = -1;
-              prev_y = -1;
-              prev_x = -1;
-            } else {
-              element.setStrokeStyle(2, 0x33ee33);
-              coord_y = element.y;
-              coord_x = element.x;
-              prev_y = y;
-              prev_x = x;
+        this.match.generateField();
+        this.canPick = true;
+        this.dragging = false;
+        this.drawField();
+        this.input.on("pointerdown", this.gemSelect, this);
+    }
+    
+    private drawField (): void{
+        this.poolArray = [];
+        for(let i = 0; i < this.match.getRows();i ++){
+            for(let j = 0; j < this.match.getColumns(); j++){
+                // let gemX = gameOptions.boardOffset.x + gameOptions.gemSize * j + gameOptions.gemSize / 2;
+                // let gemY = gameOptions.boardOffset.y + gameOptions.gemSize * i + gameOptions.gemSize / 2;
+                let gemX = j * 75;
+                let gemY = i * 75;
+                let gem = new Tile(this, gemX, gemY, gameOptions.gemSize, gameOptions.gemSize, this.match.getValue(i, j));
+                this.match.setCustomData(i, j, gem);
             }
-          }
-          console.log(`y: ${y} x: ${x}`);
-        }, this);
-      }, this);
-    }, this);
-  }
-
-  private findByCoord(tileGrid: [][], y: number, x: number) {
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        if (this.tileGrid[i][j].y == y && this.tileGrid[i][j].x == x) {
-          return this.tileGrid[i][j];
         }
-      }
     }
-  }
 
-  private addTile(x: number, y: number): Tile {
-    let randColor = colors[Phaser.Math.RND.between(0, colors.length - 1)];
-    return new Tile(this, x * 75, y * 75, 71, 71, randColor);
-  }
-
-  private clearStroke(): void {
-    this.tileGrid.map(function(e) {
-      e.map(function(t) {
-        t.setStrokeStyle(0);
-      });
-    });
-  }
-
-  private isNear(coord_y: number, coord_x: number, y: number, x: number): boolean {
-    if ((x == coord_x + 75 || x == coord_x - 75) && y == coord_y) {
-      return true;
+    private gemSelect (pointer: any) {
+        if (this.canPick) {
+            this.dragging = true;
+            let row = Math.floor((pointer.y - gameOptions.boardOffset.y) / (gameOptions.gemSize + 4));
+            let col = Math.floor((pointer.x - gameOptions.boardOffset.x) / (gameOptions.gemSize + 4));
+            if(this.match.validPick(row, col)){
+                this.selectedGem = this.match.getSelectedItem();
+                if (!this.selectedGem) {
+                    this.match.customDataOf(row, col).setStrokeStyle(2, 0x33ee33);
+                    this.match.setSelectedItem(row, col);
+                }
+                else {
+                    if (this.match.areTheSame(row, col, this.selectedGem.row, this.selectedGem.column)) {
+                        this.match.customDataOf(row, col).setStrokeStyle(0);
+                        this.match.deleselectItem();
+                    }
+                    else {
+                        if (this.match.areNext(row, col, this.selectedGem.row, this.selectedGem.column)) {
+                            this.match.customDataOf(this.selectedGem.row, this.selectedGem.column).setStrokeStyle(0);
+                            this.match.deleselectItem();
+                            this.swapGems(row, col, this.selectedGem.row, this.selectedGem.column, true);
+                        }
+                        else {
+                            this.match.customDataOf(this.selectedGem.row, this.selectedGem.column).setStrokeStyle(0);
+                            this.match.customDataOf(row, col).setStrokeStyle(2, 0x33ee33);
+                            this.match.setSelectedItem(row, col);
+                        }
+                    }
+                }
+            }
+        }
     }
-    else if ((y == coord_y + 75 || y == coord_y - 75) && x == coord_x) {
-      return true;
-    } else {
-      return false;
+
+    private swapGems (row: number, col: number, row2: number, col2: number, swapBack: boolean): void {
+        let movements = this.match.swapItems(row, col, row2, col2);
+        this.swappingGems = 2;
+        this.canPick = false;
+        movements.forEach(function(movement: any){
+            this.tweens.add({
+                targets: this.match.customDataOf(movement.row, movement.column),
+                x: this.match.customDataOf(movement.row, movement.column).x + (gameOptions.gemSize + 4) * movement.deltaColumn,
+                y: this.match.customDataOf(movement.row, movement.column).y + (gameOptions.gemSize + 4) * movement.deltaRow,
+                duration: gameOptions.swapSpeed,
+                callbackScope: this,
+                onComplete: function(){
+                    this.swappingGems --;
+                    if(this.swappingGems == 0){
+                        if(!this.match.matchInBoard()){
+                            if(swapBack){
+                                this.swapGems(row, col, row2, col2, false);
+                            }
+                            else{
+                                this.canPick = true;
+                            }
+                        }
+                        else{
+                            this.handleMatches();
+                        }
+                    }
+                }
+            })
+        }.bind(this))
     }
-  }
 
-  preload ()
-  {
+    private handleMatches (): any {
+        let gemsToRemove = this.match.getMatchList();
+        let destroyed = 0;
+        gemsToRemove.forEach(function(gem: any){
+            this.poolArray.push(this.match.customDataOf(gem.row, gem.column))
+            destroyed ++;
+            this.tweens.add({
+                targets: this.match.customDataOf(gem.row, gem.column),
+                alpha: 0,
+                duration: gameOptions.destroySpeed,
+                callbackScope: this,
+                onComplete: function(event: any, sprite: any){
+                    destroyed --;
+                    if(destroyed == 0){
+                        this.makeGemsFall();
+                    }
+                }
+            });
+        }.bind(this));
+    }
 
-  }
-
-  update ()
-  {
-    // console.log()
-  }
+    private makeGemsFall () {
+        let moved = 0;
+        this.match.removeMatches();
+        let fallingMovements = this.match.arrangeBoardAfterMatch();
+        fallingMovements.forEach(function(movement: any){
+            moved ++;
+            this.tweens.add({
+                targets: this.match.customDataOf(movement.row, movement.column),
+                y: this.match.customDataOf(movement.row, movement.column).y + movement.deltaRow * (gameOptions.gemSize + 4),
+                duration: gameOptions.fallSpeed * Math.abs(movement.deltaRow),
+                callbackScope: this,
+                onComplete: function(){
+                    moved --;
+                    if(moved == 0){
+                        this.endOfMove();
+                    }
+                }
+            })
+        }.bind(this));
+        let replenishMovements = this.match.replenishBoard();
+        replenishMovements.forEach(function(movement: any){
+            moved ++;
+            let tile = this.poolArray.pop();
+            tile.alpha = 1;
+            tile.y = gameOptions.boardOffset.y - 37.5 + (gameOptions.gemSize + 4) * (movement.row - movement.deltaRow + 1) - (gameOptions.gemSize + 4) / 2;
+            tile.x = gameOptions.boardOffset.x - 37.5 + (gameOptions.gemSize + 4) * movement.column + (gameOptions.gemSize + 4) / 2;
+            tile.fillColor = this.match.valueAt(movement.row, movement.column);
+            this.match.setCustomData(movement.row, movement.column, tile);
+            this.tweens.add({
+                targets: tile,
+                y: gameOptions.boardOffset.y - 37.5 + (gameOptions.gemSize + 4) * movement.row + (gameOptions.gemSize + 4) / 2,
+                duration: gameOptions.fallSpeed * movement.deltaRow,
+                callbackScope: this,
+                onComplete: function(){
+                    moved --;
+                    if(moved == 0){
+                        this.endOfMove();
+                    }
+                }
+            });
+        }.bind(this));
+    }
+    
+    private endOfMove (): void {
+    if (this.match.matchInBoard()) {
+        this.time.addEvent({
+            delay: 250,
+            callback: this.handleMatches()
+        });
+    }
+    else {
+        this.canPick = true;
+        this.selectedGem = null;
+    }
+}
 }

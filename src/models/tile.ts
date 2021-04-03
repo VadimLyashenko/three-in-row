@@ -18,4 +18,6 @@ export class Tile extends Phaser.GameObjects.Rectangle {
     this.setOrigin(0 ,0);
     scene.add.existing(this);
   }
+
+  shift: number;
 }
