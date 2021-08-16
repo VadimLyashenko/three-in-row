@@ -1,8 +1,6 @@
 import { Match } from '../models/match';
 import { Tile } from '../models/tile';
-import { colors } from '../colors';
 
-let game;
 let gameOptions = {
     gemSize: 71,
     swapSpeed: 200,
@@ -15,6 +13,7 @@ let gameOptions = {
 }
 
 export class GameScene extends Phaser.Scene {
+  
     constructor() {
         super({
             key: 'GameScene'
@@ -23,10 +22,10 @@ export class GameScene extends Phaser.Scene {
 
     match: Match;
     canPick: boolean;
-    dragging: boolean;
     poolArray: [];
     swappingGems: number;
     selectedGem: any;
+    option_coord: {i: number, j: number}
 
     create () {
         this.match = new Match({
@@ -37,15 +36,18 @@ export class GameScene extends Phaser.Scene {
 
         this.match.generateField();
         this.canPick = true;
-        this.dragging = false;
         this.drawField();
+
+        this.option_coord = this.match.getFirstOptionCoord();
+        this.match.customDataOf(this.option_coord.i, this.option_coord.j).setStrokeStyle(2, 0xff3a51);
+        
         this.input.on("pointerdown", this.gemSelect, this);
     }
     
     private drawField (): void{
         this.poolArray = [];
-        for(let i = 0; i < this.match.getRows();i ++){
-            for(let j = 0; j < this.match.getColumns(); j++){
+        for (let i = 0; i < this.match.getRows();i ++) {
+            for (let j = 0; j < this.match.getColumns(); j++) {
                 // let gemX = gameOptions.boardOffset.x + gameOptions.gemSize * j + gameOptions.gemSize / 2;
                 // let gemY = gameOptions.boardOffset.y + gameOptions.gemSize * i + gameOptions.gemSize / 2;
                 let gemX = j * 75;
@@ -58,7 +60,6 @@ export class GameScene extends Phaser.Scene {
 
     private gemSelect (pointer: any) {
         if (this.canPick) {
-            this.dragging = true;
             let row = Math.floor((pointer.y - gameOptions.boardOffset.y) / (gameOptions.gemSize + 4));
             let col = Math.floor((pointer.x - gameOptions.boardOffset.x) / (gameOptions.gemSize + 4));
             if(this.match.validPick(row, col)){
@@ -121,6 +122,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     private handleMatches (): any {
+        this.match.customDataOf(this.option_coord.i, this.option_coord.j).setStrokeStyle(0);
         let gemsToRemove = this.match.getMatchList();
         let destroyed = 0;
         gemsToRemove.forEach(function(gem: any){
@@ -185,15 +187,22 @@ export class GameScene extends Phaser.Scene {
     }
     
     private endOfMove (): void {
-    if (this.match.matchInBoard()) {
-        this.time.addEvent({
-            delay: 250,
-            callback: this.handleMatches()
-        });
+        if (this.match.matchInBoard()) {
+            this.time.addEvent({
+                delay: 250,
+                callback: this.handleMatches()
+            });
+        }
+        else {
+            let option = this.match.firstOptionInBoard();
+            if (option) {
+              this.option_coord = this.match.getFirstOptionCoord();
+              this.match.customDataOf(this.option_coord.i, this.option_coord.j).setStrokeStyle(2, 0xff3a51);
+            } else {
+              console.log('end');
+            }
+            this.canPick = true;
+            this.selectedGem = null;
+        }
     }
-    else {
-        this.canPick = true;
-        this.selectedGem = null;
-    }
-}
 }

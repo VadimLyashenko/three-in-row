@@ -19,10 +19,10 @@ export class Match {
     public generateField (): void {
         this.gameArray = [];
         this.selectedItem = false;
-        for(let i = 0; i < this.rows; i ++){
+        for (let i = 0; i < this.rows; i ++) {
             this.gameArray[i] = [];
-            for(let j = 0; j < this.columns; j ++){
-                do{
+            for (let j = 0; j < this.columns; j ++) {
+                do {
                     // let randomValue = Math.floor(Math.random() * this.items);
                     let randomValue = colors[Phaser.Math.RND.between(0, colors.length - 1)];
                     this.gameArray[i][j] = {
@@ -33,6 +33,11 @@ export class Match {
                     }
                 } while(this.isPartOfMatch(i, j));
             }
+        }
+        if (this.firstOptionInBoard()) {
+          console.log('option found');
+        } else {
+          this.generateField();
         }
     }
 
@@ -239,5 +244,56 @@ export class Match {
             }
         }
         return result;
+    }
+
+    // returns true if there is a option in the board
+    public firstOptionInBoard (): boolean {
+        for(let i = 0; i < this.rows; i ++){
+            for(let j = 0; j < this.columns; j ++){
+                if(this.isPartOfOption(i, j)){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private isPartOfOption (row: number, column: number): boolean {
+        return this.isPartOfVerticalOption(row, column) || this.isPartOfHorizontalOption(row, column);
+    }
+
+    // returns true if the item at (row, column) is part of an vertical option
+    private isPartOfVerticalOption (row: number, column: number): boolean {
+        return this.valueAt(row, column) === this.valueAt(row - 1, column + 1) && this.valueAt(row, column) === this.valueAt(row - 2, column + 1) ||
+            this.valueAt(row, column) === this.valueAt(row - 2, column) && this.valueAt(row, column) === this.valueAt(row - 3, column) ||
+            this.valueAt(row, column) === this.valueAt(row - 1, column - 1) && this.valueAt(row, column) === this.valueAt(row - 2, column - 1) ||
+            this.valueAt(row, column) === this.valueAt(row + 1, column + 1) && this.valueAt(row, column) === this.valueAt(row + 2, column + 1) ||
+            this.valueAt(row, column) === this.valueAt(row + 2, column) && this.valueAt(row, column) === this.valueAt(row + 3, column) ||
+            this.valueAt(row, column) === this.valueAt(row + 1, column - 1) && this.valueAt(row, column) === this.valueAt(row + 2, column - 1) ||
+            this.valueAt(row, column) === this.valueAt(row - 1, column + 1) && this.valueAt(row, column) === this.valueAt(row + 1, column + 1) ||
+            this.valueAt(row, column) === this.valueAt(row - 1, column - 1) && this.valueAt(row, column) === this.valueAt(row + 1, column - 1);
+    }
+
+    // returns true if the item at (row, column) is part of an horizontal option
+    private isPartOfHorizontalOption (row: number, column: number): boolean {
+        return this.valueAt(row, column) === this.valueAt(row - 1, column - 1) && this.valueAt(row, column) === this.valueAt(row - 1, column - 2) ||
+            this.valueAt(row, column) === this.valueAt(row, column - 2) && this.valueAt(row, column) === this.valueAt(row, column -3) ||
+            this.valueAt(row, column) === this.valueAt(row + 1, column - 1) && this.valueAt(row, column) === this.valueAt(row + 1, column - 2) ||
+            this.valueAt(row, column) === this.valueAt(row - 1, column + 1) && this.valueAt(row, column) === this.valueAt(row - 1, column + 2) ||
+            this.valueAt(row, column) === this.valueAt(row, column + 2) && this.valueAt(row, column) === this.valueAt(row, column + 3) ||
+            this.valueAt(row, column) === this.valueAt(row + 1, column + 1) && this.valueAt(row, column) === this.valueAt(row + 1, column + 2) ||
+            this.valueAt(row, column) === this.valueAt(row - 1, column - 1) && this.valueAt(row, column) === this.valueAt(row - 1, column + 1) ||
+            this.valueAt(row, column) === this.valueAt(row + 1, column - 1) && this.valueAt(row, column) === this.valueAt(row + 1, column + 1);
+    }
+
+    public getFirstOptionCoord (): {i: number, j: number} {
+        for(let i = 0; i < this.rows; i ++){
+            for(let j = 0; j < this.columns; j ++){
+                if(this.isPartOfOption(i, j)){
+                    return {i: i, j: j}
+                }
+            }
+        }
+        // return false;
     }
 }
